@@ -1,7 +1,14 @@
+// require cors to prevent cross site scripting errors
+var cors = require("cors");
+
 const express = require('express');
 const app = express();
 
+// use cors
+app.use(cors());
+
 // Render dynamically assigns a port via process.env.PORT, falling back to 3000 locally
+// source: google search results example
 const PORT = process.env.PORT || 3000;
 
 // install router
