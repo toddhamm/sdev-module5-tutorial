@@ -84,7 +84,8 @@ router.post("/create", async function(req, res) {
 
    try {
       await song.save();
-      res.send(200);
+      res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
+      // res.send(200);
    }  
    catch (ex) {
       res.status(400).send(ex.message);
@@ -112,7 +113,8 @@ router.post("/addCourse", async function(req, res) {
 
    try {
       await course.save();
-      res.send(200);
+      //res.send(200);
+      res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
    }  
    catch (ex) {
       res.status(400).send(ex.message);
@@ -130,7 +132,8 @@ router.post("/addStudentCourse", async function(req, res) {
 
    try {
       await addStudentCourse.save();
-      res.send(200);
+      // res.send(200);
+      res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
    }  
    catch (ex) {
       res.status(400).send(ex.message);
