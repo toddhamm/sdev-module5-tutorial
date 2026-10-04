@@ -163,17 +163,60 @@ router.post("/addCourse", async function(req, res) {
 
    // Create a course from the submitted form data
    const course = new Course({
-      name: req.body.courseName
+      name: req.body.name
    });
 
    try {
       await course.save();
-      //res.send(200);
-      res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
+      res.status(201).json(course);
+      // res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
    }  
    catch (ex) {
       res.status(400).send(ex.message);
    }
+});
+
+// edit course
+router.put("/updateCourse", async function(req, res) {
+
+   try {
+      const updatedCourse = await Course.findByIdAndUpdate(
+          req.body.courseID, 
+          { 
+                name: req.body.name,
+          }, 
+          { new: true, runValidators: true } // Options
+      );
+      
+      res.status(201).json(updatedCourse);
+
+      // res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
+      // res.send(200);
+   }  
+   catch (ex) {
+      res.status(400).send(ex.message);
+   }
+});
+
+// delete course
+router.delete("/courses/:id", async function(req, res) {
+
+    // course id from request 
+    const courseId = req.params.id;
+
+    try {
+      const deletedCourse = await Course.findByIdAndDelete(courseId);
+      
+      // error
+      if (!deletedCourse) {
+        res.status(404).send("Course not found");
+      } else {
+        // success
+        res.status(200).json(deletedCourse);
+      }
+    } catch (error) {
+        res.status(404).send("Course not found: " + error);
+    }
 });
 
 // student adds a course to their schedule
