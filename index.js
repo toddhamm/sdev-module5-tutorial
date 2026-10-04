@@ -32,10 +32,6 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// morgan logging
-//const morgan = require('morgan');
-//app.use(morgan('dev')); // Logs method, path, status, and response time
-
 // logging
 app.use((req, res, next) => {
   console.log('Incoming Request:', {
@@ -70,26 +66,85 @@ router.get("/songs",  async (req, res) => {
 });
 
 // one song
+router.get("/songs/:id", async function(req, res) {
+
+    // from google example: 
+    // get the id param from the url
+    const songId  = req.params.id;
+
+    try {
+        const song = await Song.find({ _id: songId});
+        res.status(200).json(song);
+    } catch (err) {
+        res.status(400).json(err);
+    }
+});
 
 // search / query
 
 // add a song
-router.post("/create", async function(req, res) {
+router.post("/addSong", async function(req, res) {
 
    // Create a song from the submitted form data
-   const song = new Song({
-      title: req.body.title,
-      artist: req.body.artist
-   });
+   const song = await new Song(req.body);
 
    try {
       await song.save();
-      res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
+      res.status(201).json(song);
+
+      // res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
       // res.send(200);
    }  
    catch (ex) {
       res.status(400).send(ex.message);
    }
+});
+
+// update song
+router.put("/updateSong", async function(req, res) {
+
+   try {
+      const updatedSong = await Song.findByIdAndUpdate(
+          req.body.songID, 
+          { 
+                title: req.body.title,
+                artist: req.body.artist,
+                genre: req.body.genre,
+                popularity: req.body.popularity,
+                releaseDate: req.body.releaseDate,
+          }, 
+          { new: true, runValidators: true } // Options
+      );
+      
+      res.status(201).json(updatedSong);
+
+      // res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
+      // res.send(200);
+   }  
+   catch (ex) {
+      res.status(400).send(ex.message);
+   }
+});
+
+// delete one song
+router.delete("/songs/:id", async function(req, res) {
+
+    // song id from request 
+    const songId = req.params.id;
+
+    try {
+      const deletedSong = await Song.findByIdAndDelete(songId);
+      
+      // error
+      if (!deletedSong) {
+        res.status(404).send("Song not found");
+      } else {
+        // success
+        res.status(200).json(deletedSong);
+      }
+    } catch (error) {
+        res.status(404).send("Song not found: " + error);
+    }
 });
 
 // get all courses, sorted by name, alphabetically
