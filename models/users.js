@@ -6,8 +6,11 @@ const db = require("../db");
 // in this case, new table Users will be created with the following structure
 const User = db.model("User", {
 	username: { type: String, required: true },
-	firstName: { type: String, required: true },
-	lastName: { type: String, required: true },
+	firstName: { type: String, required: false },
+	lastName: { type: String, required: false },
+	password: { type: String, required: true },
+	userType: { type: Number, required: true }, 
+	status: { type: String }
 });
 
 // export

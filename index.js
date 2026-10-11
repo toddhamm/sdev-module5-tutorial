@@ -21,7 +21,12 @@ const Course = require("./models/courses");
 const StudentCourses = require("./models/studentCourses"); 
 
 // import Users model
-const Users = require("./models/users"); 
+const User = require("./models/users"); 
+
+
+const jwt = require("jwt-simple");
+
+const secret = "supersecret";
 
 // use cors module
 app.use(cors());
@@ -270,6 +275,84 @@ router.get("/courses/:id", async function(req, res) {
 
 // student deletes a course from their schedule
 // deleteStudentCourse
+
+// create new user
+router.post("/newUser", async(req, res) => {
+    if(!req.body.username || !req.body.password){
+        res.status(400).json({error: "Missing username or password"})
+    }
+
+    const newUser = await new User({
+        username: req.body.username,
+        password: req.body.password,
+        status: req.body.status,
+        userType: 1   
+    });
+
+    try {
+        await newUser.save();
+        res.status(201).json(newUser);
+    } catch (err) {
+
+    }
+
+});
+
+// login; use post request because new session will be created
+router.post("/auth", async(req, res) => {
+    if(!req.body.username || !req.body.password){
+        res.status(400).json({error: "Missing username or password."});
+        return;
+    }
+
+    // query for username and password
+    const user = await User.find({
+        username: req.body.username,
+        password: req.body.password
+    });
+
+    // login failed
+    if (user.length === 0) {
+      res.status(401).json({ error: "Invalid login"});
+    } else {
+        // match found
+
+        // create token using jwt library
+        username2 = user.username;
+        const token = jwt.encode({username: user.username}, secret);
+        const auth = 1;
+        const userType = user.userType;
+
+        res.status(201).json({
+            user,
+            username2,
+            token: token,
+            auth: auth,
+            userType: userType,
+            _id: user._id
+        });
+
+    }
+});
+
+// status
+router.get("/status", async(req, res) => {
+    if(!req.headers["x-auth"]){
+        return res.status(401).json({error: "Missing x-auth"});
+    }
+    const token = req.headers(["x-auth"];
+    try{
+        const decoded = jwt.decode(token, secret);
+        let users = User.find({}, "username and status");
+        res.json(users);
+    } catch(ex){
+        rest.status(401).json({error: "invalid jwt"});
+    }
+});
+
+// validate token
+
+// logout
 
 /*
 // create Users table
