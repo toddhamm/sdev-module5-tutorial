@@ -340,7 +340,7 @@ router.get("/status", async(req, res) => {
     if(!req.headers["x-auth"]){
         return res.status(401).json({error: "Missing x-auth"});
     }
-    const token = req.headers(["x-auth"];
+    const token = req.headers(["x-auth"]);
     try{
         const decoded = jwt.decode(token, secret);
         let users = User.find({}, "username and status");
