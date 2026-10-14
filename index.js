@@ -56,6 +56,227 @@ const PORT = process.env.PORT || 3000;
 // install router
 const router = express.Router();
 
+// get all courses, sorted by name, alphabetically
+router.get("/courses",  async (req, res) => {
+
+    try {
+        const courses = await Course.find().sort({ name: 1 });
+        res.status(200).json(courses);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+// add course
+router.post("/addCourse", async function(req, res) {
+
+   // Create a course from the submitted form data
+   const course = new Course({
+      name: req.body.name
+   });
+
+   try {
+      await course.save();
+      res.status(201).json(course);
+      // res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
+   }  
+   catch (ex) {
+      res.status(400).send(ex.message);
+   }
+});
+
+// edit course
+router.put("/updateCourse", async function(req, res) {
+
+   try {
+      const updatedCourse = await Course.findByIdAndUpdate(
+          req.body.courseID, 
+          { 
+                name: req.body.name,
+          }, 
+          { new: true, runValidators: true } // Options
+      );
+      
+      res.status(201).json(updatedCourse);
+
+      // res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
+      // res.send(200);
+   }  
+   catch (ex) {
+      res.status(400).send(ex.message);
+   }
+});
+
+// delete course
+router.delete("/courses/:id", async function(req, res) {
+
+    // course id from request 
+    const courseId = req.params.id;
+
+    try {
+      const deletedCourse = await Course.findByIdAndDelete(courseId);
+      
+      // error
+      if (!deletedCourse) {
+        res.status(404).send("Course not found");
+      } else {
+        // success
+        res.status(200).json(deletedCourse);
+      }
+    } catch (error) {
+        res.status(404).send("Course not found: " + error);
+    }
+});
+
+// student adds a course to their schedule
+router.post("/addStudentCourse", async function(req, res) {
+
+   // Create a student-course relational record from the submitted form data
+   const addStudentCourse = new StudentCourses({
+      studentId: req.body.studentId,
+      courseId: req.body.courseId
+   });
+
+   try {
+      await addStudentCourse.save();
+      res.send(200);
+      // res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
+   }  
+   catch (ex) {
+      res.status(400).send(ex.message);
+   }
+});
+
+// list of courses in a student's schedule
+router.get("/studentCourses/:id", async function(req, res) {
+
+    //'6abfc36225554d5ad7f1b110'
+
+    // student id from request 
+    const studentId = req.params.id;
+
+    try {
+        const courses = await StudentCourses.find({studentId: studentId});
+        res.status(200).json(courses);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+// get one course by id
+router.get("/courses/:id", async function(req, res) {
+
+    // from google example: 
+    // get the id param from the url
+    const courseId  = req.params.id;
+
+    //alert(courseId);
+    //console.log(courseId);
+
+    try {
+        const course = await Course.find({ _id: courseId});
+        res.status(200).json(course);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+// student deletes a course from their schedule
+router.delete("/deleteStudentCourse/:id", async function(req, res) {
+
+    // course id from request 
+    const deleteId = req.params.id;
+
+    try {
+      const deletedCourse = await StudentCourses.findByIdAndDelete(deleteId);
+      
+      // error
+      if (!deletedCourse) {
+        res.status(404).send("Course not found");
+      } else {
+        // success
+        res.status(200).json(deletedCourse);
+      }
+    } catch (error) {
+        res.status(404).send("Course not found: " + error);
+    }
+});
+
+// create new user
+router.post("/newUser", async(req, res) => {
+    if(!req.body.username || !req.body.password){
+        res.status(400).json({error: "Missing username or password"})
+    }
+
+    const newUser = await new User({
+        username: req.body.username,
+        password: req.body.password,
+        status: req.body.status,
+        userType: 1   
+    });
+
+    try {
+        await newUser.save();
+        res.status(201).json(newUser);
+    } catch (err) {
+
+    }
+
+});
+
+// login; use post request because new session will be created
+router.post("/auth", async(req, res) => {
+    if(!req.body.username || !req.body.password){
+        res.status(400).json({error: "Missing username or password."});
+        return;
+    }
+
+    // query for username and password
+    const user = await User.find({
+        username: req.body.username,
+        password: req.body.password
+    });
+
+    // login failed
+    if (user.length === 0) {
+      res.status(401).json({ error: "Invalid login"});
+    } else {
+        // match found
+
+        // create token using jwt library
+        username2 = user.username;
+        const token = jwt.encode({username: user.username}, secret);
+        const auth = 1;
+        const userType = user.userType;
+
+        res.status(201).json({
+            user,
+            username2,
+            token: token,
+            auth: auth,
+            userType: userType,
+            _id: user._id
+        });
+
+    }
+});
+
+// status
+router.get("/status", async(req, res) => {
+    if(!req.headers["x-auth"]){
+        return res.status(401).json({error: "Missing x-auth"});
+    }
+    const token = req.headers(["x-auth"]);
+    try{
+        const decoded = jwt.decode(token, secret);
+        let users = User.find({}, "username and status");
+        res.json(users);
+    } catch(ex){
+        rest.status(401).json({error: "invalid jwt"});
+    }
+});
+
+// songs endpoints
 // http get call to api/songs
 
 // get all songs in the database, sort alphabetically by name
@@ -152,207 +373,6 @@ router.delete("/songs/:id", async function(req, res) {
     }
 });
 
-// get all courses, sorted by name, alphabetically
-router.get("/courses",  async (req, res) => {
-
-    try {
-        const courses = await Course.find().sort({ name: 1 });
-        res.status(200).json(courses);
-    } catch (err) {
-        res.status(500).json(err);
-    }
-});
-
-// add course
-router.post("/addCourse", async function(req, res) {
-
-   // Create a course from the submitted form data
-   const course = new Course({
-      name: req.body.name
-   });
-
-   try {
-      await course.save();
-      res.status(201).json(course);
-      // res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
-   }  
-   catch (ex) {
-      res.status(400).send(ex.message);
-   }
-});
-
-// edit course
-router.put("/updateCourse", async function(req, res) {
-
-   try {
-      const updatedCourse = await Course.findByIdAndUpdate(
-          req.body.courseID, 
-          { 
-                name: req.body.name,
-          }, 
-          { new: true, runValidators: true } // Options
-      );
-      
-      res.status(201).json(updatedCourse);
-
-      // res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
-      // res.send(200);
-   }  
-   catch (ex) {
-      res.status(400).send(ex.message);
-   }
-});
-
-// delete course
-router.delete("/courses/:id", async function(req, res) {
-
-    // course id from request 
-    const courseId = req.params.id;
-
-    try {
-      const deletedCourse = await Course.findByIdAndDelete(courseId);
-      
-      // error
-      if (!deletedCourse) {
-        res.status(404).send("Course not found");
-      } else {
-        // success
-        res.status(200).json(deletedCourse);
-      }
-    } catch (error) {
-        res.status(404).send("Course not found: " + error);
-    }
-});
-
-// student adds a course to their schedule
-router.post("/addStudentCourse", async function(req, res) {
-
-   // Create a student-course relational record from the submitted form data
-   const addStudentCourse = new StudentCourses({
-      studentId: req.body.studentId,
-      courseId: req.body.studentCourse
-   });
-
-   try {
-      await addStudentCourse.save();
-      // res.send(200);
-      res.redirect('https://sdev255-module5-tutorial-frontend.onrender.com/');
-   }  
-   catch (ex) {
-      res.status(400).send(ex.message);
-   }
-});
-
-// list of courses in a student's schedule
-router.get("/studentCourses", async function(req, res) {
-
-    try {
-        const courses = await StudentCourses.find({studentId: '6abfc36225554d5ad7f1b110'});
-        res.status(200).json(courses);
-    } catch (err) {
-        res.status(500).json(err);
-    }
-});
-
-// get one course by id
-router.get("/courses/:id", async function(req, res) {
-
-    // from google example: 
-    // get the id param from the url
-    const courseId  = req.params.id;
-
-    //alert(courseId);
-    //console.log(courseId);
-
-    try {
-        const course = await Course.find({ _id: courseId});
-        res.status(200).json(course);
-    } catch (err) {
-        res.status(500).json(err);
-    }
-});
-
-
-// student deletes a course from their schedule
-// deleteStudentCourse
-
-// create new user
-router.post("/newUser", async(req, res) => {
-    if(!req.body.username || !req.body.password){
-        res.status(400).json({error: "Missing username or password"})
-    }
-
-    const newUser = await new User({
-        username: req.body.username,
-        password: req.body.password,
-        status: req.body.status,
-        userType: 1   
-    });
-
-    try {
-        await newUser.save();
-        res.status(201).json(newUser);
-    } catch (err) {
-
-    }
-
-});
-
-// login; use post request because new session will be created
-router.post("/auth", async(req, res) => {
-    if(!req.body.username || !req.body.password){
-        res.status(400).json({error: "Missing username or password."});
-        return;
-    }
-
-    // query for username and password
-    const user = await User.find({
-        username: req.body.username,
-        password: req.body.password
-    });
-
-    // login failed
-    if (user.length === 0) {
-      res.status(401).json({ error: "Invalid login"});
-    } else {
-        // match found
-
-        // create token using jwt library
-        username2 = user.username;
-        const token = jwt.encode({username: user.username}, secret);
-        const auth = 1;
-        const userType = user.userType;
-
-        res.status(201).json({
-            user,
-            username2,
-            token: token,
-            auth: auth,
-            userType: userType,
-            _id: user._id
-        });
-
-    }
-});
-
-// status
-router.get("/status", async(req, res) => {
-    if(!req.headers["x-auth"]){
-        return res.status(401).json({error: "Missing x-auth"});
-    }
-    const token = req.headers(["x-auth"]);
-    try{
-        const decoded = jwt.decode(token, secret);
-        let users = User.find({}, "username and status");
-        res.json(users);
-    } catch(ex){
-        rest.status(401).json({error: "invalid jwt"});
-    }
-});
-
-// validate token
-
-// logout
 
 /*
 // create Users table
