@@ -202,12 +202,58 @@ router.delete("/deleteStudentCourse/:id", async function(req, res) {
     }
 });
 
+// use bcrypt to hash passwords
+const bcrypt = require('bcrypt');
+
 // create new user
 router.post("/newUser", async(req, res) => {
     if(!req.body.username || !req.body.password){
         res.status(400).json({error: "Missing username or password"})
     }
 
+    // test if user already exists
+    const user = await User.find({
+        username: req.body.username,
+    });
+
+    // no match
+    if (user.length === 0) {
+        // hash the password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(req.body.password, salt);
+
+        const newUser = await new User({
+          username: req.body.username,
+          password: hashedPassword,
+          status: req.body.status,
+          userType: 1   
+        });
+
+        try {
+            await newUser.save();
+            res.status(201).json(newUser);
+        } catch (err) {
+            res.status(401).json({ error: "Could not create account. Error 101."}); 
+        }
+    } else {
+        // match
+        res.status(401).json({ error: "Could not create account. Error 201."}); 
+    }
+
+    // new method with hashed password
+    /* does not work
+    newUser.pre('save', async function (next) {
+      try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        res.status(201).json(newUser);
+        next();
+      } catch (err) {
+        return next(err);
+      }
+    });
+    */
+    /* old, unhashed, working
     const newUser = await new User({
         username: req.body.username,
         password: req.body.password,
@@ -221,6 +267,7 @@ router.post("/newUser", async(req, res) => {
     } catch (err) {
 
     }
+    */
 
 });
 
@@ -231,17 +278,26 @@ router.post("/auth", async(req, res) => {
         return;
     }
 
-    // query for username and password
-    const user = await User.find({
-        username: req.body.username,
-        password: req.body.password
+    // const isMatch = await bcrypt.compare(candidatePassword, user.password);
+
+    // query for username 
+    const user = await User.findOne({
+        username: req.body.username
     });
 
+    console.log(user);
+
     // login failed
-    if (user.length === 0) {
+    if (!user) {
       res.status(401).json({ error: "Invalid login"});
     } else {
         // match found
+
+        // check if password matches
+        const isMatch = await user.comparePassword(req.body.password);
+        if (!isMatch) {
+            res.status(401).json({ message: 'Invalid login' });
+        }
 
         // create token using jwt library
         username2 = user.username;
@@ -250,7 +306,6 @@ router.post("/auth", async(req, res) => {
         const userType = user.userType;
 
         res.status(201).json({
-            user,
             username2,
             token: token,
             auth: auth,
